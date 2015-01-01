@@ -1,13 +1,16 @@
 ;; types::
-;;   num : number
-;;   num*: number array
-;;   str : string
-;; color : color code ... RGB(x,y,z)
+;;        num : number
+;;        num*: number array
+;;        str : string
+;;      color : color code ... RGB(x,y,z)
 ;; animtarget : animation target string or number (BGANIM)
-;; array : array (COPY)
-;; var : variable reference (INC,DEC)
-;; ... : vararg (FORMAT$)
-;; funcname: function name for XON XOFF
+;; listtarget : ERR or slot:linenumber or linenumber
+;;        var : variable reference (INC,DEC)
+;;        ... : vararg (FORMAT$)
+;;   funcname : function name for XON XOFF
+;;      label : literal label @HOGE
+;;        any : any variable
+;;       any* : any array variable
 ;;
 ;; Vector is for argument group (BGCLIP etc)
 ;; UNKNOWN
@@ -16,57 +19,64 @@
 
 ;; SPECIAL
 (OPTION SPECIAL)
-(COMMON :keyword SPECIAL)
-(DEF :keyword SPECIAL)
-(DIM :keyword SPECIAL)
-(OUT :keyword SPECIAL)
-(USE :keyword SPECIAL)
-(VAR :keyword SPECIAL)
-(LIST SPECIAL)
+(COMMON :keyword :token)
+(REM :syntax) ;; FIXME: Comment
+(DEF :keyword :syntax SPECIAL)
+(DIM :keyword :syntax SPECIAL)
+(VAR :keyword :syntax SPECIAL)
+(OUT :keyword :syntax :token)
+(USE :keyword (slot num))
+(LIST (target listtarget :optional) :direct)
 
 ;; Control flow
-(CALL :keyword SPECIAL)
-(FOR :keyword SPECIAL)
-(STOP :keyword SPECIAL)
-(RETURN :keyword SPECIAL)
-(ELSE :keyword SPECIAL)
-(END :keyword SPECIAL) ;; Also used in DEF
-(ENDIF :keyword SPECIAL)
-(GOSUB :keyword SPECIAL)
-(GOTO :keyword SPECIAL)
-(NEXT :keyword SPECIAL)
-(ON :keyword SPECIAL)
-(IF :keyword SPECIAL)
-(STEP SPECIAL) ;; FIXME: KEYWORD?
-(WHILE :keyword SPECIAL)
-(THEN :keyword SPECIAL)
-(WEND :keyword SPECIAL)
-(REPEAT :keyword SPECIAL)
-(UNTIL :keyword SPECIAL)
-(TO SPECIAL) ;; FIXME: KEYWORD?
-(BREAK :keyword SPECIAL)
-(CONTINUE :keyword SPECIAL)
+(CALL :keyword (name str) ...)
+(CALL :keyword (name str) ... OUT ...)
+(CALL :keyword (=> any) (name str) ...)
+(FOR :keyword :syntax SPECIAL)
+(TO :token :syntax) ;; Token
+(STEP :token :syntax) ;; Token
+(NEXT :keyword :syntax) ;; FIXME: Ignore variable name
+(STOP :keyword)
+(RETURN :keyword) ;; Return from gosub-subroutine
+(RETURN :keyword (val any)) ;; Return from DEF procedure
+(END :keyword :syntax) ;; Also used in DEF
+(IF :keyword (check num) :syntax) ;; FIXME: IF - GOTO 
+(THEN :keyword :syntax :token)
+(ELSE :keyword :syntax :token)
+(ENDIF :keyword :syntax :token)
+(GOSUB :keyword :syntax (label str))
+(GOSUB :keyword :syntax (label label))
+(GOTO :keyword :syntax (label str))
+(GOTO :keyword :syntax (label label))
+(ON :keyword SPECIAL) ;; FIXME: ON - GOTO ON - GOSUB
+(WHILE :keyword :syntax (val num))
+(WEND :keyword :syntax)
+(REPEAT :keyword :syntax)
+(UNTIL :keyword :syntax (val num))
+(BREAK :keyword :syntax) ;; FOR WHILE REPEAT
+(CONTINUE :keyword :syntax) ;; FOR WHILE REPEAT
 
 ;; Data statement
-(DATA :keyword SPECIAL)
-(READ :keyword SPECIAL)
-(RESTORE :keyword SPECIAL)
+(READ :keyword ...)
+(DATA :keyword :syntax ...)
+(RESTORE :keyword (label str))
+(RESTORE :keyword (label label))
 
 ;; Operators
 (AND :operator :keyword)
 (NOT :keyword :operator)
 (OR :keyword :operator)
 (XOR :keyword :operator)
-(MOD :operator) ;; FIXME: keyword?
-(DIV :operator) ;; FIXME: keyword?
+(MOD :keyword :operator)
+(DIV :keyword :operator)
 
 
 ;; Math
+(PI (=> num))
 (ABS num (=> num))
 (ACOS num (=> num))
 (ASIN num (=> num))
 (ATAN num (=> num))
-(PI (=> num))
 (POW (=> num) (a num) (b num))
 (RAD (=> num) (val num))
 (ROUND (=> num) (v num))
@@ -92,8 +102,8 @@
 
 
 ;; Error
-(CONT)
-(BACKTRACE)
+(CONT :direct)
+(BACKTRACE :direct)
 (ERRNUM :sysvar)
 (ERRLINE :sysvar)
 (ERRPRG :sysvar)
@@ -165,8 +175,8 @@
 ;; Program/Project
 (EXEC :keyword (filename str))
 (EXEC :keyword (slot num))
-(RUN (slot num :optional))
-(NEW (slot num :optional))
+(RUN (slot num :optional) :direct)
+(NEW (slot num :optional) :direct)
 (PRGDEL (count num :optional))
 (PRGEDIT (slot num) (line num :optional))
 (PRGGET$ (=> str))
@@ -175,7 +185,7 @@
 (PRGSET (code str))
 (PRGSIZE (=> num) (slot num :optional))
 (PRGSLOT :sysvar)
-(PROJECT (name str))
+(PROJECT (name str) :direct)
 
 ;; Filesystem
 (CHKFILE (=> num) (filename str))
@@ -201,11 +211,11 @@
 (LOCATE (x num :optional) (y num :optional) (z num :optional))
 (SCROLL (x num) (y num))
 (TABSTEP :sysvar)
-(INPUT :keyword (guide str :optional) ...)
 (INKEY$ (=> str))
 (FONTDEF (code num) (dat str))
-(PRINT :keyword SPECIAL)
-(LINPUT SPECIAL)
+(PRINT :keyword ...)
+(INPUT :keyword (guide str :optional) ...)
+(LINPUT :keyword ...)
 
 ;; Strings
 (CHR$ (=> str) (code num))
@@ -220,20 +230,20 @@
 (FORMAT$ (=> str) (fmt str) ...)
 
 ;; Variable 
-(POP (=> any) var) ;; FIXME: array + any
-(SHIFT (=> any) any*) ;; FIXME: any
-(UNSHIFT array any) ;; FIXME: SHIFT
-(PUSH var (dat any)) ;; FIXME:
+(POP (=> any) any*)
+(SHIFT (=> any) any*)
+(UNSHIFT any* any)
+(PUSH any* any) 
 (SORT #((fromstart num) (fromcount num) :optional) ...)
 (RSORT #((fromstart num) (fromcount num) :optional) ...)
-(SWAP :keyword var var)
+(SWAP :keyword any any)
 (MIN (=> num) ...)
 (MAX (=> num) ...)
 (LEN (=> num) str)
-(LEN (=> num) var)
-(COPY (to array) (offset num :optional) (from array)
+(LEN (=> num) any*)
+(COPY (to any*) (offset num :optional) (from any*)
       #((fromoffset num :optional) (fromcount num) :optional))
-(COPY (to array) (offset num :optional) (fromlabel str) (count num :optional))
+(COPY (to any*) (offset num :optional) (fromlabel str) (count num :optional))
 
 ;; Date/Time
 (TIME$ :sysstrvar)
@@ -276,8 +286,10 @@
 (TALKCHK (=> num))
 (TALKSTOP)
 (SYSBEEP :sysvar)
-(WAVSET (id num) (a num) (d num) (s num) (r num) (wave str) (rate num :optional))
-(WAVSETA (id num) (a num) (d num) (s num) (r num) (wave num*) (rate num :optional) (start num :optional) (end num :optional))
+(WAVSET (id num) (a num) (d num) (s num) (r num) (wave str) 
+        (rate num :optional))
+(WAVSETA (id num) (a num) (d num) (s num) (r num) (wave num*) 
+         (rate num :optional) (start num :optional) (end num :optional))
 (EFCOFF)
 (EFCON)
 (EFCSET (id num))
@@ -298,9 +310,6 @@
 (BGMVOL (track num :optional) (vol num))
 
 ;; BG
-(BGANIM (layer num) (animtarget) (animdata num*)
-        (loopcount num :optional)) 
-(BGCHK (layer num) (=> num))
 (BGCLIP (layer num) 
         #((sx num) (sy num) (ex num) (ey num) :optional))
 (BGCLR (layer num :optional))
@@ -325,27 +334,25 @@
 (BGSCALE (layer num) (x num) (y num))
 (BGSCREEN (layer num) (w num) (h num))
 (BGSHOW UNKNOWN)
-(BGSTART (layer num :optional))
-(BGSTOP (layer num :optional))
 (BGVAR (layer num) (id num) (val num))
 (BGVAR (layer num) (id num) (=> num))
 (BGVAR (layer num) (id num) OUT (val num))
 
+;; BG Animation
+(BGCHK (layer num) (=> num))
+(BGANIM (layer num) animtarget (animdata num*)
+        (loopcount num :optional))  
+(BGSTART (layer num :optional))
+(BGSTOP (layer num :optional))
+
 
 ;; Sprite
-(SPANIM (id num) animtarget (dat num*) (loop num :optional)) ;; FIXME:
-(SPANIM (id num) animtarget (label str) (loop num :optional))
-(SPANIM (id num) animtarget ...)
-(SPCHK (=> num) (id num))
 (SPCHR (id num) (template num))
 (SPCHR (id num) (u num) (v num) #((w num) (h num) :optional) (attr num))
 (SPCLIP #((sx num) (sy num) (ex num) (ey num) :optional))
 (SPCLR (id num))
-(SPCOL (id num) #((x num) (y num) (w num) (h num) :optional)
-       (scale num :optional) (mask num :optional))
 (SPCOLOR (id num) (c color))
 (SPCOLOR (id num) OUT (c color))
-(SPCOLVEC (id num) #((vx num) (vy num) :optional))
 (SPDEF (id num) (u num) (v num) #((w num) (h num) 
                                   #((bx num) (by num) :optional)
                                   :optional)
@@ -357,20 +364,8 @@
                                  #((bx num) (by num) :optional)
                                  :optional)
        (attr num :optional))
-(SPVAR (id num) (v num) (val num))
-(SPVAR (=> num) (id num) (v num))
-(SPVAR (id num) (v num) OUT (val num))
 (SPHIDE (id num))
-(SPHITINFO OUT (time num))
-(SPHITINFO OUT (time num) (x1 num) (y1 num) (x2 num) (y2 num))
-(SPHITINFO OUT (time num) (x1 num) (y1 num) (vx1 num) (vy1 num)
-           (x2 num) (y2 num) (vx2 num) (vy2 num))
-(SPHITRC (=> num)
-         ...) ;; FIXME: Unmatched in document??
-(SPHITSP (=> num) (id num :optional))
-(SPHITSP (=> num) (id1 num) (id2 num))
 (SPHOME (id num) (x num) (y num))
-(SPLINK (id num) (to num))
 (SPOFS (id num) (x num) (y num) (z num))
 (SPPAGE (page num))
 (SPROT (id num) (ang num))
@@ -381,9 +376,30 @@
 (SPSET (id num) (template num))
 (SPSET (id num) (u num) (v num) #((w num) (h num) :optional) (attr num))
 (SPSHOW (id num))
+
+;; Sprite animation/collision/link states
+(SPANIM (id num) animtarget (dat num*) (loop num :optional)) ;; FIXME:
+(SPANIM (id num) animtarget (label str) (loop num :optional))
+(SPANIM (id num) animtarget ...)
+(SPCHK (=> num) (id num))
+(SPCOL (id num) #((x num) (y num) (w num) (h num) :optional)
+       (scale num :optional) (mask num :optional))
+(SPCOLVEC (id num) #((vx num) (vy num) :optional))
+(SPVAR (id num) (v num) (val num))
+(SPVAR (=> num) (id num) (v num))
+(SPVAR (id num) (v num) OUT (val num))
+(SPHITINFO OUT (time num))
+(SPHITINFO OUT (time num) (x1 num) (y1 num) (x2 num) (y2 num))
+(SPHITINFO OUT (time num) (x1 num) (y1 num) (vx1 num) (vy1 num)
+           (x2 num) (y2 num) (vx2 num) (vy2 num))
+(SPHITRC (=> num)
+         ...) ;; FIXME: Unmatched in document??
+(SPHITSP (=> num) (id num :optional))
+(SPHITSP (=> num) (id1 num) (id2 num))
 (SPSTART (id num :optional))
 (SPSTOP (id num :optional))
 (SPUNLINK (id num))
+(SPLINK (id num) (to num))
 
 ;; Multiplayer
 (MPCOUNT :sysvar)
