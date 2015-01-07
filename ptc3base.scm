@@ -103,7 +103,7 @@
 
 ;; Error
 (CONT :direct)
-(BACKTRACE :direct)
+(BACKTRACE) ;; Issue 49 - Should be :direct
 (ERRNUM :sysvar)
 (ERRLINE :sysvar)
 (ERRPRG :sysvar)
@@ -231,9 +231,13 @@
 
 ;; Variable 
 (POP (=> any) any*)
+(POP (=> str) str) ;; Issue 44
 (SHIFT (=> any) any*)
+(SHIFT (=> str) str) ;; Issue 44
 (UNSHIFT any* any)
+(UNSHIFT str str) ;; Issue 44
 (PUSH any* any) 
+(PUSH str str) ;; Issue 44
 (SORT #((fromstart num) (fromcount num) :optional) ...)
 (RSORT #((fromstart num) (fromcount num) :optional) ...)
 (SWAP :keyword any any)
@@ -293,6 +297,17 @@
 (EFCOFF)
 (EFCON)
 (EFCSET (id num))
+;; Issue #40
+(EFCSET 
+  ;; EFC parameters : took from I3DL2
+  (reflections num) ;; 0 - 2000ms
+  (reverb_delay num) ;; 0 - 2000ms
+  (reverb_decay num) ;; 1 - 10000ms
+  (reverb_flt1 num) ;; 0.0 - 1.0 (LPF ??)
+  (reverb_flt2 num) ;; 0.0 - 1.0 (LPF ??)
+  (reflections_gain num) ;; 0.0 - 1.0
+  (reverb_gain num) ;; 0.0 - 1.0
+  )
 (EFCWET (beep num) (bgm num) (talk num))
 (BEEP (effect-number num :optional) (freq num :optional) (vol num :optional)
       (pan num :optional))
